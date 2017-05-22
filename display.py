@@ -1,5 +1,5 @@
 from subprocess import Popen, PIPE
-from os import remove, execlp, fork
+from os import remove, execlp
 
 #constants
 XRES = 500
@@ -42,6 +42,7 @@ def save_ppm( screen, fname ):
             row+= str( pixel[ BLUE ] ) + ' '
         ppm+= row + '\n'
     f.write( ppm )
+    print "Saving as " + fname
     f.close()
 
 def save_extension( screen, fname ):
@@ -62,7 +63,7 @@ def make_animation( name ):
     name_arg = 'anim/' + name + '*'
     name = name + '.gif'
     print 'Saving animation as ' + name
-    f = fork()
+    #f = fork()
     if f == 0:
         execlp('convert', 'convert', '-delay', '3', name_arg, name)
     
