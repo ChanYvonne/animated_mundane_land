@@ -174,6 +174,6 @@ def run(filename):
                 save_ppm(screen, args[0])
 
         if num_frames > 1:
-            save_extension(screen, 'anim/%s%03d'%('anim', str(frame)))
+            save_ppm(screen, 'anim/%s%03d.ppm'%('anim', frame))
         clear_screen(screen)
             
