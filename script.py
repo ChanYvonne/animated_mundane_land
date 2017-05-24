@@ -1,4 +1,4 @@
-import mdl
+import mdl, os
 from display import *
 from matrix import *
 from draw import *
@@ -22,7 +22,7 @@ from draw import *
   ==================== """
 
 def first_pass( commands ):
-    basename = "giffy"
+    basename = 'giffy'
     num_frames = 1
     yes_frames = False
     yes_basename = False
@@ -33,14 +33,14 @@ def first_pass( commands ):
             num_frames = int(line[1])
             yes_frames = True
         if line[0] == "basename":
-            basename = line[0]
+            basename = line[1]
             yes_basename = True
         if line[0] == "vary":
             yes_vary = True
 
     if yes_vary and not yes_frames:
         print "Has vary but does not set frames"
-        exit(0)
+        exit()
     if yes_frames and not yes_basename:
         print basename + "is being used and frames are set"
 
@@ -65,23 +65,22 @@ def first_pass( commands ):
   ===================="""
 def second_pass( commands, num_frames ):
     knobs = []
-
     for x in range(num_frames):
         knobs.append({})
-    for i in range(num_frames):
-        for line in commands:
-            if line[0] == "vary":
-                word = line[1]
-                start_frame = line[2]
-                end_frame = line[3]
-                start_val = line[4]
-                end_val = line[5]
+    
+    for line in commands:
+        if line[0] == "vary":
+            word = line[1]
+            start_frame = float(line[2])
+            end_frame = float(line[3])
+            start_val = float(line[4])
+            end_val = float(line[5])
+            for i in range(num_frames):
                 if i >= start_frame and i <= end_frame:
-                    mod = float((end_val-start_val)/(end_frame-start_frame+1))
-                    val = start_val
-                    for f in range(start_frame, end_frame+1):
-                        knobs[f][word] = val
-                        val += mod                
+                    mod = ((end_val-start_val)*(i-start_frame))/(end_frame-start_frame)
+                    knobs[i][word] = start_val + mod
+                if word not in knobs[i]:
+                    knobs[i][word] = 0
                 
     return knobs
 
@@ -91,7 +90,11 @@ def run(filename):
     """
     color = [255, 255, 255]
     p = mdl.parseFile(filename)
-
+    tmp = new_matrix()
+    ident(tmp)
+    screen = new_screen()
+    step = 0.1
+    
     if p:
         (commands, symbols) = p
     else:
@@ -105,10 +108,7 @@ def run(filename):
         tmp = new_matrix()
         ident(tmp)
         stack = [ [x[:] for x in tmp] ]
-        screen = new_screen()
         tmp = []
-        step = 0.1
-        knob_val = 1.0
         for command in commands:
             #print command
             c = command[0]
@@ -134,27 +134,32 @@ def run(filename):
                 draw_polygons(tmp, screen, color)
                 tmp = []
             elif c == 'move':
-                if num_frames > 1 and args[3] != None:
+                if args[3] != None:
                     knob_val = knobs[frame][args[3]]
-                tmp = make_translate(args[0] * knob_val,
-                                     args[1] * knob_val,
-                                     args[2] * knob_val)
+                    x = args[0] * knob_val
+                    y = args[1] * knob_val
+                    z = args[2] * knob_val
+                    args = [x, y, z]
+                tmp = make_scale(args[0], args[1], args[2])
                 matrix_mult(stack[-1], tmp)
                 stack[-1] = [x[:] for x in tmp]
                 tmp = []
             elif c == 'scale':
-                if num_frames > 1 and args[3] != None:
+                if args[3] != None:
                    knob_val = knobs[frame][args[3]]
-                tmp = make_scale(args[0] * knob_val,
-                                 args[1] * knob_val,
-                                 args[2] * knob_val)
+                   x = args[0] * knob_val
+                   y = args[1] * knob_val
+                   z = args[2] * knob_val
+                   args = [x, y, z]
+                tmp = make_scale(args[0], args[1], args[2])
                 matrix_mult(stack[-1], tmp)
                 stack[-1] = [x[:] for x in tmp]
                 tmp = []
             elif c == 'rotate':
-                if num_frames > 1 and args[2] != None:
+                if args[2] != None:
                    knob_val = knobs[frame][args[2]]
-                theta = args[1] * (math.pi/180) * knob_val
+                   args = [args[0], args[1] * knob_val]
+                theta = args[1] * (math.pi/180)
                 if args[0] == 'x':
                     tmp = make_rotX(theta)
                 elif args[0] == 'y':
@@ -173,7 +178,14 @@ def run(filename):
             elif c == 'save':
                 save_ppm(screen, args[0])
 
+        if not os.path.exists('anim'):
+            os.makedirs('anim')
+
+        #print basename
         if num_frames > 1:
-            save_ppm(screen, 'anim/%s%03d.ppm'%('anim', frame))
-        clear_screen(screen)
+            name = 'anim/' + basename + (3-len(str(frame)))*'0' + str(frame) + '.ppm'
+            save_ppm(screen, name)
+            clear_screen(screen)
             
+       # make_animation(basename)
+                

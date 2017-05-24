@@ -63,7 +63,7 @@ def make_animation( name ):
     name_arg = 'anim/' + name + '*'
     name = name + '.gif'
     print 'Saving animation as ' + name
-    #f = fork()
+    f = fork()
     if f == 0:
         execlp('convert', 'convert', '-delay', '3', name_arg, name)
     
